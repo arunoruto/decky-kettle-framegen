@@ -10,7 +10,6 @@ container's pid namespace, so it is read through ``/proc/<pid>/root``.
 import os
 
 LIB = "libVkLayer_kettle_framegen.so"
-LSFG_LIB = "liblsfg-vk"
 LOG_PREFIX = "VK_LAYER_KETTLE_framegen:"
 
 
@@ -117,13 +116,11 @@ def game_status(appid):
         result["envEnabled"] |= kfg
         result["envDisabled"] |= disabled
         result["protonLog"] |= env.get("PROTON_LOG", "") not in ("", "0")
+        # lsfg-vk's layer loads into every Vulkan game (it has no enable variable) and only
+        # generates frames where LSFG_PROCESS names one of its profiles
         if env.get("LSFG_PROCESS"):
             result["lsfg"] = True
-        names = (LIB, LSFG_LIB) if kfg and not disabled else (LSFG_LIB,)
-        found = _maps_has(pid, *names)
-        if LSFG_LIB in found:
-            result["lsfg"] = True
-        if LIB not in found:
+        if not kfg or disabled or LIB not in _maps_has(pid, LIB):
             continue
         result["loaded"] = True
         result["pids"].append(int(pid))
