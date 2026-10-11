@@ -1,0 +1,93 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Current headers: the layer uses VK_EXT_present_timing, newer than Ubuntu's packaged ones
+  VULKAN_HEADERS_REF: v1.4.365
+  # What the layer needed so far; a rise would drop older distros, so it fails the build to be noticed
+  MAX_GLIBC: "2.38"
+
+jobs:
+  layer:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+      - uses: actions/checkout@v5
+        with:
+          repository: KhronosGroup/Vulkan-Headers
+          ref: ${{ env.VULKAN_HEADERS_REF }}
+          path: vulkan-headers
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc make glslang-tools \
+            libvulkan-dev mesa-vulkan-drivers
+      - name: Build and test (lavapipe)
+        run: VULKAN_HEADERS=vulkan-headers TEST=1 scripts/build-layer.sh
+      - name: Check glibc requirement
+        run: |
+          need=$(objdump -T bin/aarch64/libVkLayer_kettle_framegen.so | grep -o 'GLIBC_[0-9.]*' | sed 's/GLIBC_//' | sort -V | tail -1)
+          echo "needs glibc $need"
+          [ "$(printf '%s\n%s\n' "$need" "$MAX_GLIBC" | sort -V | tail -1)" = "$MAX_GLIBC" ]
+      - uses: actions/upload-artifact@v4
+        with:
+          name: layer-aarch64
+          path: bin/aarch64/
+
+  plugin:
+    needs: layer
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: pip install pytest
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: python -m pytest -q
+      - run: pnpm build
+      - uses: actions/download-artifact@v5
+        with:
+          name: layer-aarch64
+          path: bin/aarch64
+      - run: scripts/package.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: decky-kettle-framegen
+          path: out/decky-kettle-framegen.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: plugin
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: decky-kettle-framegen
+      # Same file name every release, so .../releases/latest/download/decky-kettle-framegen.zip
+      # always points to the newest one
+      - run: gh release create "$GITHUB_REF_NAME" decky-kettle-framegen.zip --repo "$GITHUB_REPOSITORY" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+out/
+bin/
+build/
+__pycache__/
+.pytest_cache/
+.devenv*
+.direnv/
+devenv.local.nix

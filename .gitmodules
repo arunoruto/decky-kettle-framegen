@@ -1,0 +1,3 @@
+[submodule "upstream/kettle-framegen"]
+	path = upstream/kettle-framegen
+	url = https://github.com/kettlelinux/kettle-framegen.git

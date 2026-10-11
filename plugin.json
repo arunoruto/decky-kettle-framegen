@@ -1,0 +1,11 @@
+{
+  "name": "Kettle Frame Generation",
+  "author": "Mirza Arnaut",
+  "flags": [],
+  "api_version": 1,
+  "publish": {
+    "tags": ["frame generation", "vulkan", "performance"],
+    "description": "Per-game frame generation with the kettle-framegen Vulkan layer: install it, turn it on per game, and change its settings live.",
+    "image": "https://opengraph.githubassets.com/1/arunoruto/decky-kettle-framegen"
+  }
+}
