@@ -90,6 +90,9 @@ the bundled layer is aarch64 only for now.
 * An aarch64 Linux handheld with [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader)
   and a Vulkan driver (tested: Turnip on Adreno 740)
 * Games running through Vulkan: native, DXVK or vkd3d-proton
+* On aarch64, games whose Vulkan calls are native: Proton builds for ARM64EC (such as
+  proton-cachyos-arm64) or native aarch64 games. Games that run entirely under FEX (native
+  x86 Linux games, x86 Proton) use x86 Vulkan, where the bundled aarch64 layer doesn't load
 
 ### Installation
 
