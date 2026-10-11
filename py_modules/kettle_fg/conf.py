@@ -25,13 +25,15 @@ DEFAULTS = {
 
 # What a game gets when it is first enabled, unless the user changed the defaults.
 # refresh: Adreno 740 has no VK_EXT_present_timing, so auto and min_fps need it set.
+# latency: low, as frame generation adds a frame of latency and in Ori on an Adreno 740 the
+# previous frame was still queued at 100% of presents (low then held the game ~20 ms later).
 PLUGIN_DEFAULTS = {
     "multiplier": "2",
     "refresh": "120",
     "min_fps": "0",
     "mode": "motion",
     "flow_scale": "0.5",
-    "latency": "normal",
+    "latency": "low",
 }
 
 _KEY = re.compile(r"^[a-z_]+$")

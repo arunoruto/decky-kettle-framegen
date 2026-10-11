@@ -1,6 +1,6 @@
 {
   "name": "decky-kettle-framegen",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Frame generation per game with the kettle-framegen Vulkan layer",
   "type": "module",
   "scripts": {
