@@ -50,6 +50,22 @@ function errorToast(title: string, e: unknown) {
   toaster.toast({ title, body: e instanceof Error ? e.message : String(e) });
 }
 
+// Decky unmounts the panel whenever the Quick Access menu isn't visible, which includes while a
+// dropdown's menu or a modal is open, so state that has to outlive that lives here.
+const kept = new Map<string, unknown>();
+
+function useKept<T>(key: string, initial: T): [T, (v: T) => void] {
+  const [value, setValue] = useState<T>(kept.has(key) ? (kept.get(key) as T) : initial);
+  const set = useCallback(
+    (v: T) => {
+      kept.set(key, v);
+      setValue(v);
+    },
+    [key],
+  );
+  return [value, set];
+}
+
 // ---------- settings controls (per game and defaults) ----------
 
 function withCurrent(options: { data: string; label: string }[], value: string) {
@@ -385,7 +401,7 @@ function GamePanel({
 // ---------- defaults and layer ----------
 
 function DefaultsPanel() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useKept("defaultsOpen", false);
   const [values, setValues] = useState<api.Settings | null>(null);
 
   useEffect(() => {
@@ -487,10 +503,14 @@ function LayerPanel({ layer, setLayer }: { layer: api.LayerStatus | null; setLay
 
 function Content() {
   const visible = useQuickAccessVisible();
-  const [layer, setLayer] = useState<api.LayerStatus | null>(null);
+  const [layer, setLayer] = useKept<api.LayerStatus | null>("layer", null);
   const [running, setRunning] = useState<GameRef | null>(runningGame());
-  const [picked, setPicked] = useState<string | null>(null);
-  const [choices, setChoices] = useState<GameRef[]>([]);
+  const [choices, setChoices] = useKept<GameRef[]>("choices", []);
+  // a game picked from the list, until the running game changes
+  const [pick, setPick] = useKept<{ appid: string; running: string | null } | null>("pick", null);
+  const picked = pick && pick.running === (running?.appid ?? null) ? pick.appid : null;
+  const setPicked = (appid: string | null) =>
+    setPick(appid === null ? null : { appid, running: running?.appid ?? null });
 
   useEffect(() => {
     if (!visible) return;
