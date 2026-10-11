@@ -89,6 +89,13 @@ function useDebounced(fn: (v: api.Settings) => void, ms = 300) {
   );
 }
 
+// Frames only come evenly when the game renders refresh / multiplier fps; below that it judders
+function fillHint(refresh: string | undefined): string {
+  const hz = Number(refresh);
+  if (!(hz > 0)) return "Higher adds more lag, GPU load and heat";
+  return `At ${hz} Hz, smooth needs ${Math.round(hz / 2)} rendered fps at 2x, ${Math.round(hz / 3)} at 3x. Higher adds lag and heat`;
+}
+
 function SettingsControls({
   values,
   onChange,
@@ -108,6 +115,7 @@ function SettingsControls({
       <PanelSectionRow>
         <DropdownItem
           label="Multiplier"
+          description={fillHint(values.refresh)}
           rgOptions={withCurrent(
             [
               { data: "1", label: "Off (1x)" },
@@ -368,7 +376,7 @@ function GamePanel({
         <PanelSectionRow>
           <ToggleField
             label="Log to file"
-            description={`PROTON_LOG=1, to ~/steam-${appid}.log. Next game start.`}
+            description={`For debugging: PROTON_LOG=1, to ~/steam-${appid}.log, which grows fast. Next game start.`}
             checked={logOn}
             disabled={busy || options === null}
             onChange={async (on) => {
@@ -492,8 +500,8 @@ function LayerPanel({ layer, setLayer }: { layer: api.LayerStatus | null; setLay
         <Note style={warn}>Also installed system-wide: {layer.systemCopies.join(", ")}</Note>
       )}
       <Note>
-        Needs about 50+ rendered fps. GPU-bound games render fewer real frames with it on. HDR (FP16)
-        swapchains turn it off. At 2x, rendered fps should be half the refresh rate or it judders.
+        Needs about 50+ rendered fps. It holds back one real frame, so it adds lag, and its GPU work
+        costs real frames, heat and battery. HDR (FP16) swapchains turn it off.
       </Note>
     </PanelSection>
   );
