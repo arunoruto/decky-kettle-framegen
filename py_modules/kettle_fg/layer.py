@@ -23,9 +23,37 @@ SYSTEM_DIRS = (
 )
 
 
+FEX_BINFMT = ("/proc/sys/fs/binfmt_misc/FEX-x86_64", "/proc/sys/fs/binfmt_misc/FEX-x86")
+FEX_BINARIES = ("/usr/bin/FEXInterpreter", "/usr/bin/FEX", "/usr/local/bin/FEXInterpreter", "/usr/local/bin/FEX")
+ELF_MACHINES = {0x3E: "x86_64", 0xB7: "aarch64"}
+
+
+def _elf_arch(path):
+    try:
+        with open(path, "rb") as f:
+            head = f.read(20)
+    except OSError:
+        return None
+    if len(head) < 20 or head[:4] != b"\x7fELF":
+        return None
+    return ELF_MACHINES.get(int.from_bytes(head[18:20], "little"))
+
+
 def arch():
+    """The machine games run on natively.
+
+    Decky's PluginLoader is an x86_64 binary; on aarch64 handhelds (Armada) it runs under FEX,
+    so this process reports x86_64. FEX's own binary is not part of its x86 RootFS overlay,
+    so it shows the host's architecture.
+    """
     m = platform.machine()
-    return {"arm64": "aarch64", "amd64": "x86_64"}.get(m, m)
+    m = {"arm64": "aarch64", "amd64": "x86_64"}.get(m, m)
+    if m == "x86_64" and any(os.path.exists(p) for p in FEX_BINFMT):
+        for path in FEX_BINARIES:
+            host = _elf_arch(path)
+            if host:
+                return host
+    return m
 
 
 def bundled_dir(plugin_dir):

@@ -29,3 +29,16 @@ def test_install_update_uninstall(tmp_path, monkeypatch):
 
     st = layer.uninstall(str(plugin), str(home))
     assert not st["installed"] and not lib.exists()
+
+
+def test_arch_under_fex(tmp_path, monkeypatch):
+    fex = tmp_path / "FEX"
+    fex.write_bytes(b"\x7fELF" + bytes(14) + (0xB7).to_bytes(2, "little") + bytes(10))
+    binfmt = tmp_path / "FEX-x86_64"
+    binfmt.write_text("enabled\n")
+    monkeypatch.setattr(layer.platform, "machine", lambda: "x86_64")
+    monkeypatch.setattr(layer, "FEX_BINFMT", (str(binfmt),))
+    monkeypatch.setattr(layer, "FEX_BINARIES", (str(tmp_path / "missing"), str(fex)))
+    assert layer.arch() == "aarch64"
+    monkeypatch.setattr(layer, "FEX_BINFMT", (str(tmp_path / "none"),))
+    assert layer.arch() == "x86_64"
